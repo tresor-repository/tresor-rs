@@ -1,10 +1,11 @@
 # Use postgres/example user/password credentials
-<<<<<<< HEAD
 version: '3.1'
 services:
   db:
-    image: postgres
+    image: postgres:10
     restart: always
+    volumes: 
+      - .postgres:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: tresor
       POSTGRES_PASSWORD: tresor
@@ -23,7 +24,7 @@ services:
         soft: -1
         hard: -1
     volumes:
-      - esdata1:/usr/share/elasticsearch/data
+      - .esdata1:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
     networks:
@@ -37,20 +38,3 @@ volumes:
 
 networks:
   esnet:
-=======
-version: "3.1"
-
-services:
-  db:
-    image: postgres:10
-    restart: always
-    volumes:
-      - .postgres:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-    environment:
-      POSTGRES_PASSWORD: tresor
-      POSTGRES_USER: tresor
-      POSTGRES_DB: tresor
->>>>>>> add db setup in docker compose
