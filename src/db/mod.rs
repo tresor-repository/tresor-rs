@@ -1,8 +1,7 @@
 extern crate postgres;
 use postgres::{Connection, Error, TlsMode};
 
-pub type Conn = Connection;
-pub type DbError = Error;
+pub mod migration;
 
 pub fn initiate(
     database: &str,
@@ -10,12 +9,11 @@ pub fn initiate(
     port: &str,
     user: &str,
     pass: &str,
-) -> Result<Conn, DbError> {
-    Connection::connect(
-        format!(
-            "postgres:://{}:{}@{}:{}/{}",
-            user, pass, host, port, database
-        ),
-        TlsMode::None,
-    )
+) -> Result<Connection, Error> {
+    let connection = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        user, pass, host, port, database
+    );
+    println!("{}", connection);
+    Connection::connect(connection, TlsMode::None)
 }
