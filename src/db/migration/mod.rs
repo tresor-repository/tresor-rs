@@ -1,11 +1,30 @@
 use crate::db::Trx;
 use postgres::transaction::Transaction;
 use postgres::{Connection, Error};
+
+mod queries;
+
 pub fn run_migration(conn: &Connection) -> Result<(), Error> {
     conn.run_transaction(|trx| {
         let version = get_current_db_version(trx)?;
+        let code_version = queries::get_code_version();
+        if code_version as i32 > version {
+            for query in queries::QUERIES {
+                trx.execute(query, &[])?;
+            }
+            update_version_to_lastest(trx, code_version as i32)?;
+        }
         Ok(())
     })
+}
+
+fn update_version_to_lastest(trx: &Transaction, version: i32) -> Result<u64, Error> {
+    trx.execute(
+        "
+        UPDATE meta SET value = $1 WHERE key = 'db-version'
+    ",
+        &[&version],
+    )
 }
 
 fn get_current_db_version<'t>(trx: &'t Transaction) -> Result<i32, Error> {
@@ -22,7 +41,7 @@ fn get_current_db_version<'t>(trx: &'t Transaction) -> Result<i32, Error> {
 		INSERT INTO meta (key, value)
 		VALUES ('db-version', 0)
 		ON CONFLICT DO NOTHING
-    ",
+        ",
         &[],
     )?;
     let value: i32 = trx
