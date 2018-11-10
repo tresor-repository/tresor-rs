@@ -2,10 +2,13 @@ use crate::db::Trx;
 use postgres::transaction::Transaction;
 use postgres::{Connection, Error};
 pub fn run_migration(conn: &Connection) -> Result<(), Error> {
-    conn.run_transaction(get_current_db_version)
+    conn.run_transaction(|trx| {
+        let version = get_current_db_version(trx)?;
+        Ok(())
+    })
 }
 
-fn get_current_db_version<'t>(trx: &'t Transaction) -> Result<(), Error> {
+fn get_current_db_version<'t>(trx: &'t Transaction) -> Result<i32, Error> {
     trx.execute(
         "
         CREATE TABLE IF NOT EXISTS meta (
@@ -22,5 +25,14 @@ fn get_current_db_version<'t>(trx: &'t Transaction) -> Result<(), Error> {
     ",
         &[],
     )?;
-    Ok(())
+    let value: i32 = trx
+        .query(
+            "
+            SELECT value FROM meta WHERE key = 'db-version'
+            ",
+            &[],
+        )?
+        .get(0)
+        .get(0);
+    Ok(value)
 }
