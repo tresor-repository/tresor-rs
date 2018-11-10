@@ -1,5 +1,7 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
+mod db;
+
 #[macro_use]
 extern crate rocket;
 
@@ -9,5 +11,6 @@ fn index() -> &'static str {
 }
 
 fn main() {
-    rocket::ignite().mount("/", routes![index]).launch();
+    let _conn = db::initiate("tresor", "localhost", "5432", "tresor", "tresor");
+    // rocket::ignite().mount("/", routes![index]).launch();
 }
