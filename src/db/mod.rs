@@ -3,6 +3,7 @@ use postgres::transaction::Transaction;
 use postgres::{Connection, Error, TlsMode};
 
 pub mod migration;
+pub mod manager;
 
 pub fn initiate(
     database: &str,
