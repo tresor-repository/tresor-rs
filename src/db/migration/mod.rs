@@ -1,10 +1,16 @@
 use crate::db::Trx;
+
+extern crate r2d2;
+extern crate r2d2_postgres;
+extern crate postgres;
+
 use postgres::transaction::Transaction;
-use postgres::{Connection, Error};
+use postgres::Error;
 
 mod queries;
 
-pub fn run_migration(conn: &Connection) -> Result<(), Error> {
+pub fn run_migration(conn: &r2d2::Pool<r2d2_postgres::PostgresConnectionManager>) -> Result<(), Error> {
+    let conn = conn.clone();
     conn.run_transaction(|trx| {
         let version = get_current_db_version(trx)?;
         let code_version = queries::get_code_version();
