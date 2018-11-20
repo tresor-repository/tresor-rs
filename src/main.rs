@@ -14,9 +14,8 @@ fn index() -> &'static str {
 }
 
 fn main() {
-    let manager = db::manager::manager("tresor", "localhost", "5432", "tresor", "tresor").unwrap();
-    let pool = r2d2::Pool::new(manager).expect("db pool");
-    db::migration::run_migration(&pool).unwrap();
-    rocket::ignite().mount("/", routes![index]).manage(pool)
+    let manager = db::manager("tresor", "localhost", "5432", "tresor", "tresor").unwrap();
+    db::migration::run_migration(&manager).unwrap();
+    rocket::ignite().mount("/", routes![index]).manage(manager)
         .launch();
 }

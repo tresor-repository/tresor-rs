@@ -1,15 +1,12 @@
-use crate::db::Trx;
-
-extern crate r2d2;
 extern crate r2d2_postgres;
-extern crate postgres;
+extern crate r2d2;
+
+use super::{Conn, Trx, Error, queries};
 
 use postgres::transaction::Transaction;
-use postgres::Error;
 
-mod queries;
 
-pub fn run_migration(conn: &r2d2::Pool<r2d2_postgres::PostgresConnectionManager>) -> Result<(), Error> {
+pub fn run_migration(conn: &Conn) -> Result<(), Error> {
     let conn = conn.clone();
     conn.run_transaction(|trx| {
         let version = get_current_db_version(trx)?;
@@ -24,7 +21,7 @@ pub fn run_migration(conn: &r2d2::Pool<r2d2_postgres::PostgresConnectionManager>
     })
 }
 
-fn update_version_to_lastest(trx: &Transaction, version: i32) -> Result<u64, Error> {
+fn update_version_to_lastest(trx: &Transaction, version: i32) -> Result<u64, postgres::Error> {
     trx.execute(
         "
         UPDATE meta SET value = $1 WHERE key = 'db-version'
@@ -33,7 +30,7 @@ fn update_version_to_lastest(trx: &Transaction, version: i32) -> Result<u64, Err
     )
 }
 
-fn get_current_db_version<'t>(trx: &'t Transaction) -> Result<i32, Error> {
+fn get_current_db_version(trx: &Transaction) -> Result<i32, postgres::Error> {
     trx.execute(
         "
         CREATE TABLE IF NOT EXISTS meta (
