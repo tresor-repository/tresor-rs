@@ -1,7 +1,6 @@
 extern crate postgres;
 
 use postgres::transaction::Transaction;
-use r2d2::Pool;
 use r2d2_postgres::{PostgresConnectionManager, TlsMode};
 use std::io;
 use std::fmt::{Display, Formatter, Debug};
@@ -15,18 +14,18 @@ pub fn manager(
     port: &str,
     user: &str,
     pass: &str,
-) -> Result<Conn, Error> {
+) -> Result<Pool, Error> {
     let connection = format!(
         "postgres://{}:{}@{}:{}/{}",
         user, pass, host, port, database
     );
     let manager = PostgresConnectionManager::new(
         connection, TlsMode::None,
-    ).map_err(map_posgres_error)?;
+    ).map_err(map_postgres_error)?;
     r2d2::Pool::new(manager).map_err(map_r2d2_error)
 }
 
-pub type Conn = Pool<PostgresConnectionManager>;
+pub type Pool = r2d2::Pool<PostgresConnectionManager>;
 
 pub struct Error {
     error: io::Error,
@@ -44,11 +43,11 @@ impl Debug for Error {
     }
 }
 
-pub fn map_r2d2_error(err: r2d2::Error) -> Error {
+pub fn map_r2d2_error(_err: r2d2::Error) -> Error {
     Error { error: io::Error::new(io::ErrorKind::Other, "r2d2 error") }
 }
 
-pub fn map_posgres_error(err: postgres::Error) -> Error {
+pub fn map_postgres_error(err: postgres::Error) -> Error {
     Error { error: io::Error::from(err) }
 }
 
@@ -56,12 +55,12 @@ pub trait Trx {
     fn run_transaction<T>(&self, job: fn(&Transaction) -> Result<T, postgres::Error>) -> Result<T, Error>;
 }
 
-impl Trx for Pool<PostgresConnectionManager> {
+impl Trx for r2d2::Pool<PostgresConnectionManager> {
     fn run_transaction<T>(&self, job: fn(&Transaction) -> Result<T, postgres::Error>) -> Result<T, Error> {
         let conn = self.clone().get().map_err(map_r2d2_error)?;
-        let trx = conn.transaction().map_err(map_posgres_error)?;
-        let result = job(&trx).map_err(map_posgres_error)?;
-        trx.commit();
+        let trx = conn.transaction().map_err(map_postgres_error)?;
+        let result = job(&trx).map_err(map_postgres_error)?;
+        trx.commit().map_err(map_postgres_error)?;
         Ok(result)
     }
 }

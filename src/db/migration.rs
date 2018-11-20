@@ -1,14 +1,14 @@
 extern crate r2d2_postgres;
 extern crate r2d2;
 
-use super::{Conn, Trx, Error, queries};
+use super::{Pool, Trx, Error, queries};
 
 use postgres::transaction::Transaction;
 
 
-pub fn run_migration(conn: &Conn) -> Result<(), Error> {
-    let conn = conn.clone();
-    conn.run_transaction(|trx| {
+pub fn run_migration(pool: &Pool) -> Result<(), Error> {
+    let pool = pool.clone();
+    pool.run_transaction(|trx| {
         let version = get_current_db_version(trx)?;
         let code_version = queries::get_code_version();
         if code_version as i32 > version {
