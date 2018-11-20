@@ -8,7 +8,8 @@ use postgres::transaction::Transaction;
 
 pub fn run_migration(pool: &Pool) -> Result<(), Error> {
     let pool = pool.clone();
-    pool.run_transaction(|trx| {
+    let conn = pool.get().map_err(super::map_r2d2_error)?;
+    conn.run_transaction(|trx| {
         let version = get_current_db_version(trx)?;
         let code_version = queries::get_code_version();
         if code_version as i32 > version {

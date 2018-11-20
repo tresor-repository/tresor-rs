@@ -27,6 +27,8 @@ pub fn manager(
 
 pub type Pool = r2d2::Pool<PostgresConnectionManager>;
 
+pub struct Conn(pub r2d2::PooledConnection<PostgresConnectionManager>);
+
 pub struct Error {
     error: io::Error,
 }
@@ -55,10 +57,9 @@ pub trait Trx {
     fn run_transaction<T>(&self, job: fn(&Transaction) -> Result<T, postgres::Error>) -> Result<T, Error>;
 }
 
-impl Trx for r2d2::Pool<PostgresConnectionManager> {
+impl Trx for r2d2::PooledConnection<r2d2_postgres::PostgresConnectionManager> {
     fn run_transaction<T>(&self, job: fn(&Transaction) -> Result<T, postgres::Error>) -> Result<T, Error> {
-        let conn = self.clone().get().map_err(map_r2d2_error)?;
-        let trx = conn.transaction().map_err(map_postgres_error)?;
+        let trx = self.transaction().map_err(map_postgres_error)?;
         let result = job(&trx).map_err(map_postgres_error)?;
         trx.commit().map_err(map_postgres_error)?;
         Ok(result)
