@@ -1,6 +1,7 @@
 #![feature(proc_macro_hygiene, decl_macro)]
 
 mod db;
+mod routes;
 
 #[macro_use]
 extern crate rocket;
@@ -16,6 +17,6 @@ fn index() -> &'static str {
 fn main() {
     let manager = db::manager("tresor", "localhost", "5432", "tresor", "tresor").unwrap();
     db::migration::run_migration(&manager).unwrap();
-    rocket::ignite().mount("/", routes![index]).manage(manager)
+    rocket::ignite().mount("/", routes![index, routes::users::create_user]).manage(manager)
         .launch();
 }

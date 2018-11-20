@@ -1,9 +1,13 @@
 extern crate postgres;
+extern crate rocket;
 
 use postgres::transaction::Transaction;
 use r2d2_postgres::{PostgresConnectionManager, TlsMode};
 use std::io;
 use std::fmt::{Display, Formatter, Debug};
+use rocket::http::Status;
+use rocket::request::{self, FromRequest};
+use rocket::{Outcome, Request, State};
 
 pub mod migration;
 pub mod queries;
@@ -28,6 +32,18 @@ pub fn manager(
 pub type Pool = r2d2::Pool<PostgresConnectionManager>;
 
 pub struct Conn(pub r2d2::PooledConnection<PostgresConnectionManager>);
+
+impl<'a, 'r> FromRequest<'a, 'r> for Conn {
+    type Error = ();
+
+    fn from_request(request: &'a Request<'r>) -> request::Outcome<Conn, ()> {
+        let pool = request.guard::<State<Pool>>()?;
+        match pool.get() {
+            Ok(conn) => Outcome::Success(Conn(conn)),
+            Err(_) => Outcome::Failure((Status::ServiceUnavailable, ())),
+        }
+    }
+}
 
 pub struct Error {
     error: io::Error,
